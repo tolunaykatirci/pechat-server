@@ -1,16 +1,16 @@
 package socket;
 
-import security.SecurityHelper;
-import util.ClientHelper;
+import database.ClientModel;
+import security.CertificateManager;
+import security.SecurityParameters;
+import database.ClientManager;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Base64;
-import java.util.HashMap;
-import java.util.StringTokenizer;
+import java.util.List;
 
 public class ClientHandler implements Runnable {
 
@@ -29,16 +29,16 @@ public class ClientHandler implements Runnable {
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             out = new PrintWriter(clientSocket.getOutputStream(), true);
 
-            System.out.println("Client IP: " + clientSocket.getLocalAddress());
+            System.out.println("Client IP: " + clientSocket.getLocalAddress().getHostAddress());
 
-            StringBuilder sb = new StringBuilder();
+//            StringBuilder sb = new StringBuilder();
             String line = in.readLine();
 //            while ((line = in.readLine()) != null){
 //                sb.append(line);
 //            }
 
-            String allData = sb.toString();
-            parse(line, clientSocket.getLocalAddress().toString());
+//            String allData = sb.toString();
+            parse(line, clientSocket.getLocalAddress().getHostAddress());
 
             // parse request
 //            parseRequest();
@@ -51,56 +51,84 @@ public class ClientHandler implements Runnable {
     }
 
     private void parse(String allData, String ip) {
+        System.out.println("[RECEIVED] " + allData);
+
+        /*
+         *  serverPub: get server public key
+         *  register: register as client (register:userName:port:clientPublicKey) returns certificate
+         *  list: get all clients (list:clientCert) returns list
+         */
 
         if (allData.equals("serverPub")) {
-            // return server public key
-            String serverPub = Base64.getEncoder().encodeToString(SecurityHelper.serverPublicKey.getEncoded());
-            System.out.println("Server Public Key: " + serverPub);
-            out.write(serverPub);
-            out.flush();
-            out.close();
+            try {
+                // return server public key
+                System.out.println("[INFO] Server public key requested by: " + ip);
+                String serverPub = Base64.getEncoder().encodeToString(SecurityParameters.serverPublicKey.getEncoded());
+                respond(serverPub);
+                System.out.println("[SENT] " + serverPub);
+            } catch (Exception e) {
+                e.printStackTrace();
+                respond("error");
+                System.out.println("[SENT] error");
+            }
         } else if (allData.startsWith("register")) {
             // register a new client
             try {
+
                 String[] params = allData.split(":");
                 String userName = params[1];
                 int userPort = Integer.parseInt(params[2]);
                 String userPub = params[3];
 
-                System.out.println(allData);
-
-                String cert = ClientHelper.register(userName, ip, userPort, userPub);
-                System.out.println(cert);
-                out.write(cert);
-                out.flush();
-                out.close();
+                System.out.println("[INFO] Register request by: " + userName);
+                String cert = ClientManager.register(userName, ip, userPort, userPub);
+                respond(cert);
+                System.out.println("[SENT] " + cert);
             } catch (Exception e) {
                 e.printStackTrace();
-                out.write("error");
-                out.flush();
-                out.close();
+                respond("error");
+                System.out.println("[SENT] error");
             }
         } else if (allData.startsWith("list")) {
             // send all registered user details to client
             try {
                 String[] params = allData.split(":");
-                String clientCert = params[1];
+                String clientCertB64 = params[1];
+                boolean res = CertificateManager.verifyCertificate(clientCertB64);
+                if (res) {
+                    List<ClientModel> clients = ClientManager.findAllClients();
+                    for (ClientModel c:clients) {
+                        String sb = c.getUserName() + ":" +
+                                c.getIp() + ":" +
+                                c.getPort();
+                        out.println(sb);
+                        System.out.println("[SENT] " + sb);
+                    }
+                    respond("end");
+                    System.out.println("[SENT] end");
+                } else {
+                    // certificate is not verified
+                    respond("error");
+                    System.out.println("[SENT] error");
+                }
 
-                out.write("todo");
-                out.flush();
-                out.close();
             } catch (Exception e) {
                 e.printStackTrace();
-                out.write("error");
-                out.flush();
-                out.close();
+                respond("error");
+                System.out.println("[SENT] error");
             }
         } else {
             // unexpected message
-            out.write("error");
-            out.flush();
-            out.close();
+            System.out.println("[INFO] unexpected request");
+            respond("error");
+            System.out.println("[SENT] error");
         }
+    }
+
+    private void respond(String res) {
+        out.println(res);
+        out.flush();
+        out.close();
     }
 
 }

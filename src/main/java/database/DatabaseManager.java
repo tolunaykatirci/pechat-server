@@ -2,10 +2,9 @@ package database;
 
 import util.AppConfig;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DatabaseManager {
 
@@ -36,7 +35,7 @@ public class DatabaseManager {
             // create a connection to the database
             connection = DriverManager.getConnection(url);
 
-            System.out.println("Connected to SQLite database.");
+            System.out.println("[INFO] Connected to SQLite database.");
 
         } catch (SQLException e) {
             System.out.println(e.getMessage());
@@ -66,5 +65,89 @@ public class DatabaseManager {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    public static boolean addClient(ClientModel c) {
+        boolean result = false;
+        String clientSql = "INSERT INTO client (user_name, ip, port) VALUES (?,?,?)";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(clientSql);
+            pstmt.setString(1, c.getUserName());
+            pstmt.setString(2, c.getIp());
+            pstmt.setInt(3, c.getPort());
+            pstmt.executeUpdate();
+            result = true;
+            System.out.println("[INFO] User created: " + c.getUserName());
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.out.println("[ERROR] User couldn't create: " + c.getUserName());
+        }
+        return result;
+    }
+
+    public static ClientModel findClient(String userName) {
+        String sql = "SELECT * FROM client WHERE user_name = ?";
+        ClientModel c = null;
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setString(1, userName);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                c = new ClientModel();
+                c.setUserName(rs.getString("user_name"));
+                c.setIp(rs.getString("ip"));
+                c.setPort(rs.getInt("port"));
+            }
+
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+
+        return c;
+    }
+
+    public static ClientModel findClient(String ip, int port) {
+        String sql = "SELECT * FROM client WHERE ip = ? and port = ?";
+        ClientModel c = null;
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setString(1, ip);
+            pstmt.setInt(2, port);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                c = new ClientModel();
+                c.setUserName(rs.getString("user_name"));
+                c.setIp(rs.getString("ip"));
+                c.setPort(rs.getInt("port"));
+            }
+
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+
+        return c;
+    }
+
+    public static List<ClientModel> findAllClients() {
+        List<ClientModel> clients = new ArrayList<>();
+        String sql = "SELECT * FROM client";
+
+        try {
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+            while (rs.next()) {
+                ClientModel c = new ClientModel();
+                c.setUserName(rs.getString("user_name"));
+                c.setIp(rs.getString("ip"));
+                c.setPort(rs.getInt("port"));
+                clients.add(c);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return clients;
     }
 }
