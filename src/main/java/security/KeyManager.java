@@ -11,8 +11,11 @@ import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.logging.Logger;
 
 public class KeyManager {
+
+    private static Logger log = AppConfig.getLogger(KeyManager.class.getName());
 
     public static void initialCheck() throws Exception {
         File pubKey = new File(AppConfig.appProperties.getPublicKeyPath());
@@ -21,15 +24,15 @@ public class KeyManager {
         if (pubKey.exists() && pvtKey.exists()) {
             SecurityParameters.serverPublicKey = KeyManager.loadPublicKey(AppConfig.appProperties.getPublicKeyPath());
             SecurityParameters.serverPrivateKey = KeyManager.loadPrivateKey(AppConfig.appProperties.getPrivateKeyPath());
-            System.out.println("[INFO] Public/Private keys loaded from file");
+            log.info("Public/Private keys loaded from file");
         } else {
             KeyPair kp = KeyManager.generateKeyPair();
             if(kp != null) {
                 SecurityParameters.serverPublicKey = kp.getPublic();
                 SecurityParameters.serverPrivateKey = kp.getPrivate();
-                System.out.println("[INFO] Public/Private keys generated for the first time");
+                log.info("Public/Private keys generated for the first time");
             } else {
-                System.out.println("[ERROR] Could not create Key Pair!");
+                log.warning("[ERROR] Could not create Key Pair!");
                 throw new Exception("[ERROR] Could not create Key Pair!");
             }
         }
@@ -50,7 +53,7 @@ public class KeyManager {
             saveKey(pvt.getEncoded(), AppConfig.appProperties.getPrivateKeyPath());
 
         } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
+            log.warning(e.getMessage());
         }
         return kp;
     }
@@ -61,9 +64,9 @@ public class KeyManager {
             FileOutputStream out = new FileOutputStream(fileName);
             out.write(key);
             out.close();
-            System.out.println("[INFO] Key saved to: " + fileName);
+            log.info("Key saved to: " + fileName);
         } catch (IOException e) {
-            e.printStackTrace();
+            log.warning(e.getMessage());
         }
     }
 
@@ -77,7 +80,7 @@ public class KeyManager {
             KeyFactory kf = KeyFactory.getInstance("RSA");
             pub = kf.generatePublic(ks);
         } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
-            e.printStackTrace();
+            log.warning(e.getMessage());
         }
         return pub;
     }
@@ -92,7 +95,7 @@ public class KeyManager {
             KeyFactory kf = KeyFactory.getInstance("RSA");
             pvt = kf.generatePrivate(ks);
         } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
-            e.printStackTrace();
+            log.warning(e.getMessage());
         }
         return pvt;
     }

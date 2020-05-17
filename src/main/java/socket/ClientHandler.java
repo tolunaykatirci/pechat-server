@@ -4,6 +4,7 @@ import database.ClientModel;
 import security.CertificateManager;
 import security.SecurityParameters;
 import database.ClientManager;
+import util.AppConfig;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -11,8 +12,11 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Base64;
 import java.util.List;
+import java.util.logging.Logger;
 
 public class ClientHandler implements Runnable {
+
+    private static Logger log = AppConfig.getLogger(ClientHandler.class.getName());
 
     private Socket clientSocket;
     private BufferedReader in;
@@ -29,7 +33,7 @@ public class ClientHandler implements Runnable {
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             out = new PrintWriter(clientSocket.getOutputStream(), true);
 
-            System.out.println("Client IP: " + clientSocket.getLocalAddress().getHostAddress());
+            log.info("Client IP: " + clientSocket.getLocalAddress().getHostAddress());
 
 //            StringBuilder sb = new StringBuilder();
             String line = in.readLine();
@@ -46,12 +50,12 @@ public class ClientHandler implements Runnable {
             clientSocket.close();
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.warning(e.getMessage());
         }
     }
 
     private void parse(String allData, String ip) {
-        System.out.println("[RECEIVED] " + allData);
+        log.info("[RECEIVED] " + allData);
 
         /*
          *  serverPub: get server public key
@@ -62,14 +66,14 @@ public class ClientHandler implements Runnable {
         if (allData.equals("serverPub")) {
             try {
                 // return server public key
-                System.out.println("[INFO] Server public key requested by: " + ip);
+                log.info("Server public key requested by: " + ip);
                 String serverPub = Base64.getEncoder().encodeToString(SecurityParameters.serverPublicKey.getEncoded());
                 respond(serverPub);
-                System.out.println("[SENT] " + serverPub);
+                log.info("[SENT] " + serverPub);
             } catch (Exception e) {
-                e.printStackTrace();
+                log.warning(e.getMessage());
                 respond("error");
-                System.out.println("[SENT] error");
+                log.info("[SENT] error");
             }
         } else if (allData.startsWith("register")) {
             // register a new client
@@ -80,14 +84,14 @@ public class ClientHandler implements Runnable {
                 int userPort = Integer.parseInt(params[2]);
                 String userPub = params[3];
 
-                System.out.println("[INFO] Register request by: " + userName);
+                log.info("Register request by: " + userName);
                 String cert = ClientManager.register(userName, ip, userPort, userPub);
                 respond(cert);
-                System.out.println("[SENT] " + cert);
+                log.info("[SENT] " + cert);
             } catch (Exception e) {
                 e.printStackTrace();
                 respond("error");
-                System.out.println("[SENT] error");
+                log.info("[SENT] error");
             }
         } else if (allData.startsWith("list")) {
             // send all registered user details to client
@@ -102,26 +106,26 @@ public class ClientHandler implements Runnable {
                                 c.getIp() + ":" +
                                 c.getPort();
                         out.println(sb);
-                        System.out.println("[SENT] " + sb);
+                        log.info("[SENT] " + sb);
                     }
                     respond("end");
-                    System.out.println("[SENT] end");
+                    log.info("[SENT] end");
                 } else {
                     // certificate is not verified
                     respond("error");
-                    System.out.println("[SENT] error");
+                    log.info("[SENT] error");
                 }
 
             } catch (Exception e) {
-                e.printStackTrace();
+                log.warning(e.getMessage());
                 respond("error");
-                System.out.println("[SENT] error");
+                log.info("[SENT] error");
             }
         } else {
             // unexpected message
-            System.out.println("[INFO] unexpected request");
+            log.info("unexpected request");
             respond("error");
-            System.out.println("[SENT] error");
+            log.info("[SENT] error");
         }
     }
 

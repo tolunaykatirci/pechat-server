@@ -3,7 +3,10 @@ import security.KeyManager;
 import socket.SocketServer;
 import util.AppConfig;
 
+import java.util.logging.Logger;
+
 public class Application {
+
     public static void main(String[] args) {
         // get application properties from file
         AppConfig.getApplicationProperties();
@@ -23,6 +26,7 @@ public class Application {
 
         // run socket server
         runSocketServer();
+        System.out.println("Server Started");
     }
 
 

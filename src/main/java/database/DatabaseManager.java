@@ -5,8 +5,11 @@ import util.AppConfig;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 public class DatabaseManager {
+
+    private static Logger log = AppConfig.getLogger(DatabaseManager.class.getName());
 
     // static database connection
     private static Connection connection;
@@ -18,7 +21,7 @@ public class DatabaseManager {
             if (connection == null || connection.isClosed())
                 connect();
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.warning(e.getMessage());
         }
     }
 
@@ -35,10 +38,10 @@ public class DatabaseManager {
             // create a connection to the database
             connection = DriverManager.getConnection(url);
 
-            System.out.println("[INFO] Connected to SQLite database.");
+            log.info("Connected to SQLite database.");
 
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            log.warning(e.getMessage());
         }
     }
 
@@ -48,7 +51,7 @@ public class DatabaseManager {
                 connection.close();
             }
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            log.warning(e.getMessage());
         }
     }
 
@@ -63,7 +66,7 @@ public class DatabaseManager {
             Statement stmt = connection.createStatement();
             stmt.execute(clientSql);
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.warning(e.getMessage());
         }
     }
 
@@ -77,11 +80,11 @@ public class DatabaseManager {
             pstmt.setInt(3, c.getPort());
             pstmt.executeUpdate();
             result = true;
-            System.out.println("[INFO] User created: " + c.getUserName());
+            log.info("User created: " + c.getUserName());
 
         } catch (SQLException e) {
-            e.printStackTrace();
-            System.out.println("[ERROR] User couldn't create: " + c.getUserName());
+            log.warning(e.getMessage());
+            log.warning("[ERROR] User couldn't create: " + c.getUserName());
         }
         return result;
     }
@@ -102,7 +105,7 @@ public class DatabaseManager {
             }
 
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            log.warning(e.getMessage());
         }
 
         return c;
@@ -125,7 +128,7 @@ public class DatabaseManager {
             }
 
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            log.warning(e.getMessage());
         }
 
         return c;
@@ -146,7 +149,7 @@ public class DatabaseManager {
                 clients.add(c);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.warning(e.getMessage());
         }
         return clients;
     }

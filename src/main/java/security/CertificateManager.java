@@ -20,8 +20,11 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.Date;
+import java.util.logging.Logger;
 
 public class CertificateManager {
+
+    private static Logger log = AppConfig.getLogger(CertificateManager.class.getName());
 
     @SuppressWarnings("deprecation")
     public static X509Certificate generateCertificate(String publicKeyB64) {
@@ -46,9 +49,9 @@ public class CertificateManager {
             v3CertGen.setPublicKey(clientPub);
             v3CertGen.setSignatureAlgorithm("SHA256WithRSAEncryption");
             cert = v3CertGen.generateX509Certificate(SecurityParameters.serverPrivateKey);
-            System.out.println("[INFO] Client certificate created!");
+            log.info("Client certificate created!");
         } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException | InvalidKeySpecException e) {
-            e.printStackTrace();
+            log.warning(e.getMessage());
         }
 
         return cert;
@@ -66,10 +69,10 @@ public class CertificateManager {
             X509Certificate cert = (X509Certificate)certFactory.generateCertificate(in);
             cert.verify(SecurityParameters.serverPublicKey);
             result = true;
-            System.out.println("[INFO] Certificate verified");
+            log.info("Certificate verified");
         } catch (CertificateException | NoSuchProviderException | NoSuchAlgorithmException | SignatureException | InvalidKeyException e) {
-            e.printStackTrace();
-            System.out.println("[INFO] Certificate could not verify");
+            log.warning(e.getMessage());
+            log.warning("[ERROR] Certificate could not verify");
         }
         return result;
     }
@@ -83,9 +86,9 @@ public class CertificateManager {
             CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
             InputStream in = new ByteArrayInputStream(bytes);
             cert = (X509Certificate)certFactory.generateCertificate(in);
-            System.out.println("[INFO] User certificate loaded from file: " + userName);
+            log.info("User certificate loaded from file: " + userName);
         } catch (CertificateException | IOException e) {
-            e.printStackTrace();
+            log.warning(e.getMessage());
         }
         return cert;
     }
@@ -103,10 +106,10 @@ public class CertificateManager {
             byte[] buf = cert.getEncoded();
             out.write(buf);
             out.close();
-            System.out.println("[INFO] Certificate saved to: " + filePath);
+            log.info("Certificate saved to: " + filePath);
         } catch (IOException | CertificateEncodingException e) {
-            e.printStackTrace();
-            System.out.println("[ERROR] Error saving cert for user: " + c.getUserName());
+            log.warning(e.getMessage());
+            log.warning("[ERROR] Error saving cert for user: " + c.getUserName());
         }
     }
 }
